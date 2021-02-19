@@ -1,0 +1,29 @@
+<html>
+<head>
+	<meta charset="UTF-8">
+	<title>Rabata Media- Koperasi Kredit CU Lantang Tipo</title>
+	<link rel="stylesheet" type="text/css" href="css/style.css">
+</head>
+<body>
+<iframe
+	align="center"
+	frameborder="no"
+	height="100%"
+	name="frame1"
+	scrolling="auto"
+	src="http://rabataserver.000webhostapp.com"
+	style="border: 1px solid;"
+	width="100%"
+	>
+</iframe>   
+</body>
+<footer class="bg-dark text-white">
+  <div class="container">
+    <div class="row text-center pt-3">
+      <div class="col">
+        <p>© 2020 Mirroring By <a href="http://bit.ly/ytrabatamedia">RM</a></p>
+      </div>
+    </div>
+  </div>
+</footer>	
+</html>

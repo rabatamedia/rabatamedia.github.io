@@ -1,10 +1,1022 @@
 <!DOCTYPE html>
 <html>
 <head>
-   <title></title>
-</head>
+   <title>Rabata Media - Script Konfigurasi Standar</title>
+   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+  </head>
 <body>
-  
-<iframe align="center" frameborder="no" name="frame1" scrolling="auto" src="https://rabatamedia.github.io/home/header.html" style="border: 1px solid;" width="100%"></iframe>   
+<!-- Bagian Header -->
+<iframe align="center" frameborder="no" height="280px" name="frame1" scrolling="auto" src="https://rabatamedia.github.io/home/header.html" style="border: 0px solid;" width="100%">
+</iframe>
+
+<div class="container" style="text-transform: none;">
+<!-- isi Halaman -->
+################################################
+# 1 ISP MikroTik Script
+# Created by: Pejuang GSM
+# https://web.facebook.com/groups/PejuangGSM/
+# Last Update: 5 Januari 2022
+################################################
+
+# CLEAR SETTING 
+/queue simple remove [find];
+/queue tree remove [find];
+/queue type remove [find kind=pcq];
+/ip firewall filter remove [find];
+/ip firewall mangle remove [find];
+/ip firewall raw remove [find];
+/ip firewall address-list remove [find];
+/ip firewall layer7 remove [find];
+/queue simple remove [find];
+/queue tree remove [find];
+/queue type remove [find kind=pcq];
+/ip firewall filter remove [find];
+/ip firewall mangle remove [find];
+/ip firewall raw remove [find];
+/ip firewall address-list remove [find];
+/ip firewall layer7 remove [find];
+/
+
+# DHCP CLIENT, DNS, SNTP & SCHEDULER
+/ip dhcp-client add disabled=no add-default-route=yes use-peer-dns=yes use-peer-ntp=yes interface=ether1-INTERNET
+/ip dns set servers=9.9.9.9,1.1.1.1,203.130.196.6,222.124.204.34,8.8.8.8,8.8.4.4
+/ip dns set allow-remote-requests=yes cache-max-ttl=1d
+/ip pool add name=PPPOE ranges=192.168.4.2-192.168.4.254
+/system ntp client set enabled=yes primary-ntp=202.65.114.202 secondary-ntp=212.26.18.41 server-dns-names=asia.pool.ntp.org
+/system scheduler add interval=1m name=autoremovehs on-event="/queue simple remove [ find name ~\"hs-<\" ]\r\
+\n/queue simple move [find name=\"-> GLOBAL CONNECTION\"] [:pick [find] 0]" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=feb/21/1993 start-time=10:43:00
+/system scheduler add name=datetime-startup on-event="/sys scr run datetime" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-time=startup
+/system scheduler add interval=5m name=datetime on-event=":local date [/sys clock get date]; \r\
+\n:local time [/sys clock get time]; \r\
+\n/sys scr set source=\"/sys clock set date=\$date time=\$time\" [find where name=datetime];" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=feb/21/1993 start-time=16:44:58
+/system scheduler add interval=3h name=FlushDNSCache on-event="/ip dns cache flush" policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon start-date=feb/21/1993 start-time=20:04:00
+/system script add dont-require-permissions=no name=datetime owner=admin policy=ftp,reboot,read,write,policy,test,password,sniff,sensitive,romon source="/sys clock set date=jan/24/2021 time=05:19:58"
+
+# INTERFACE, NAT, FILTER & LAYER7
+/interface list add name=WAN
+/interface list add name=LAN
+/interface list member add interface=ether1-INTERNET list=WAN
+/interface list member add interface=ether5 list=LAN
+/interface list member add interface=bridge-HOTSPOT list=LAN
+/ip firewall nat add action=masquerade chain=srcnat
+/ip firewall nat add action=masquerade chain=srcnat src-address-list=LOKAL
+/ip firewall filter add action=reject chain=input comment="Anti Winbox Exploit" content=user.dat reject-with=icmp-network-unreachable
+/ip firewall filter add action=drop chain=input content=user.dat
+/ip firewall filter add disabled=yes action=drop chain=forward comment="Block Akses Client Ke Modem (Kecuali IP-ADMIN yang ada di Firewall -> Address Lists)" dst-address-list=LOKAL dst-port=80 protocol=tcp src-address-list=!IP-ADMIN
+/ip firewall filter add action=accept chain=input comment="Allow Established, Related Connections" connection-state=established,related
+/ip firewall filter add action=accept chain=forward connection-state=established,related
+/ip firewall filter add action=drop chain=input comment="Drop Invalid Connections" connection-state=invalid
+/ip firewall filter add action=drop chain=forward connection-state=invalid
+/
+
+# MANGLE
+/ip firewall mangle add action=accept chain=forward comment="[ Copyright \A9 1 ISP Script Proudly Presents for Pejuang GSM ]" dst-address-list=LOKAL src-address-list=LOKAL
+/ip firewall mangle add action=accept chain=input dst-address-list=LOKAL src-address-list=LOKAL
+/ip firewall mangle add action=accept chain=output dst-address-list=LOKAL src-address-list=LOKAL
+/ip firewall mangle add action=change-ttl chain=prerouting comment=TTL in-interface-list=WAN new-ttl=set:64 passthrough=yes
+/ip firewall mangle add disabled=yes action=change-ttl chain=postrouting new-ttl=set:1 out-interface-list=LAN passthrough=yes
+/ip firewall mangle add action=mark-packet chain=prerouting comment=DNS dst-port="" new-packet-mark="DNS UPLOAD" passthrough=yes port=53,853,5353,33434-33534 protocol=udp src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=postrouting dst-address-list=LOKAL dst-port="" new-packet-mark="DNS DOWNLOAD" passthrough=yes port=53,853,5353,33434-33534 protocol=udp
+/ip firewall mangle add action=mark-packet chain=prerouting comment=ICMP new-packet-mark="ICMP UPLOAD" passthrough=yes protocol=icmp src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=postrouting dst-address-list=LOKAL new-packet-mark="ICMP DOWNLOAD" passthrough=yes protocol=icmp
+/ip firewall mangle add action=mark-packet chain=prerouting comment=APPS new-packet-mark="APPS UPLOAD" passthrough=yes port=20-25,2112,3389,4495,5800,5900,5938,6568,7070,7502,8291,8728,8729 protocol=tcp src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=postrouting dst-address-list=LOKAL new-packet-mark="APPS DOWNLOAD" passthrough=yes port=20-25,2112,3389,4495,5800,5900,5938,6568,7070,7502,8291,8728,8729 protocol=tcp
+/ip firewall mangle add action=mark-connection chain=forward comment=GAME connection-mark="!KONEKSI UMUM" dst-address-list=IP-GAME new-connection-mark="KONEKSI GAME" passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI GAME" dst-address-list=IP-GAME new-packet-mark="GAME UPLOAD" out-interface-list=WAN passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI GAME" dst-address-list=LOKAL in-interface-list=WAN new-packet-mark="GAME DOWNLOAD" passthrough=yes src-address-list=IP-GAME
+/ip firewall mangle add action=mark-connection chain=forward comment=UMUM connection-mark="!KONEKSI GAME" dst-address-list=!IP-GAME new-connection-mark="KONEKSI UMUM" passthrough=yes port=80,81,443,8000,8008,8080,8081,8090,8443,8888 protocol=tcp src-address-list=LOKAL
+/ip firewall mangle add action=mark-connection chain=forward connection-mark="!KONEKSI GAME" dst-address-list=!IP-GAME new-connection-mark="KONEKSI UMUM" passthrough=yes port=80,81,443,8000,8008,8080,8081,8090,8443,8888 protocol=udp src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI UMUM" dst-address-list=!IP-GAME new-packet-mark="UMUM UPLOAD" out-interface-list=WAN passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI UMUM" dst-address-list=LOKAL in-interface-list=WAN new-packet-mark="UMUM DOWNLOAD" passthrough=yes src-address-list=!IP-GAME
+/ip firewall mangle add action=mark-connection chain=forward comment=CHAT dst-address-list=IP-CHAT new-connection-mark="KONEKSI CHAT" passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI CHAT" dst-address-list=IP-CHAT new-packet-mark="CHAT UPLOAD" out-interface-list=WAN passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI CHAT" dst-address-list=LOKAL in-interface-list=WAN new-packet-mark="CHAT DOWNLOAD" passthrough=yes src-address-list=IP-CHAT
+/ip firewall mangle add action=mark-connection chain=forward comment=MEETING dst-address-list=IP-MEETING new-connection-mark="KONEKSI MEETING" passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI MEETING" dst-address-list=IP-MEETING new-packet-mark="MEETING UPLOAD" out-interface-list=WAN passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI MEETING" dst-address-list=LOKAL in-interface-list=WAN new-packet-mark="MEETING DOWNLOAD" passthrough=yes src-address-list=IP-MEETING
+/ip firewall mangle add action=mark-connection chain=forward comment=SOSMED dst-address-list=IP-SOSMED new-connection-mark="KONEKSI SOSMED" passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI SOSMED" dst-address-list=IP-SOSMED new-packet-mark="SOSMED UPLOAD" out-interface-list=WAN passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI SOSMED" dst-address-list=LOKAL in-interface-list=WAN new-packet-mark="SOSMED DOWNLOAD" passthrough=yes src-address-list=IP-SOSMED
+/ip firewall mangle add action=mark-connection chain=forward comment=TIKTOK dst-address-list=IP-TIKTOK new-connection-mark="KONEKSI TIKTOK" passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI TIKTOK" dst-address-list=IP-TIKTOK new-packet-mark="TIKTOK UPLOAD" out-interface-list=WAN passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI TIKTOK" dst-address-list=LOKAL in-interface-list=WAN new-packet-mark="TIKTOK DOWNLOAD" passthrough=yes src-address-list=IP-TIKTOK
+/ip firewall mangle add action=mark-connection chain=forward comment=YOUTUBE dst-address-list=IP-YOUTUBE new-connection-mark="KONEKSI YOUTUBE" passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI YOUTUBE" dst-address-list=IP-YOUTUBE new-packet-mark="YOUTUBE UPLOAD" out-interface-list=WAN passthrough=yes src-address-list=LOKAL
+/ip firewall mangle add action=mark-packet chain=forward connection-mark="KONEKSI YOUTUBE" dst-address-list=LOKAL in-interface-list=WAN new-packet-mark="YOUTUBE DOWNLOAD" passthrough=yes src-address-list=IP-YOUTUBE
+/
+ 
+# RAW
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting comment="MOBILE LEGENDS" dst-address-list=!IP-CHAT dst-port=5000-5300,5500-5677,9000-9010,10003,30100-30300 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!IP-CHAT dst-port=5000-5300,5500-5677,9000-9010,10003,30100-30300 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting comment="FREE FIRE" dst-address-list=!LOKAL dst-port=6006,6674,7006,7889,8001-8012,9006,10000-10012,11000-11019,12006,12008,13006,20561 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=39003,39006,39698,39779,39800 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=6006,6674,7006,7889,8001-8012,9006,10000-10012,11000-11019,12006,12008,13006,20561 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=39003,39006,39698,39779,39800 log-prefix=39003,39006,39698,39779,39800 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting comment=PUBG dst-address-list=!LOKAL dst-port=7889,8013,10012,13004,14000,15692,17000,17500,18081,20000-20002,20371 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=7086-7995,8011,8700,9030,9031,10013,10039,10049,10096,10168,10210,10491,10571,10612 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=11455,12070-12460,13004,13748,13894,13972,17000,17500,19428,20719,26294,41182-41192 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting comment=COD dst-address-list=!LOKAL dst-port=3013,10000-10019,18082,50000,65010,65050 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=7085-7995,7500-7616,8700,9030,10010-10019,17000-20100,20000,20001,20002,26947,64872 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting comment="GENSHIN IMPACT" dst-address-list=!LOKAL dst-port=42472 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=42472,22101-22102 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting comment="SAUSAGE MAN" dst-address-list=!LOKAL dst-port=6001,9000,9001,8013 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=8000,50233,58272 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting comment="HIGGS DOMINO" dst-address-list=!LOKAL dst-port=26000-26050,26666,50001-50500 protocol=tcp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-GAME address-list-timeout=1m chain=prerouting dst-address-list=!LOKAL dst-port=40000-40010 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-MEETING address-list-timeout=1h chain=prerouting comment="GOOGLE MEET" dst-address-list=!LOKAL dst-port=19302-19309 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-CHAT address-list-timeout=1h chain=prerouting comment="CHAT / WA / VoIP" dst-address-list=!LOKAL dst-port=3478,5060,5061 protocol=udp src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-CHAT address-list-timeout=6h chain=prerouting content=whatsapp.com dst-address-list=!LOKAL src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-CHAT address-list-timeout=6h chain=prerouting content=whatsapp.net dst-address-list=!LOKAL src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-YOUTUBE address-list-timeout=1d chain=prerouting comment=YOUTUBE content=youtube.com dst-address-list=!IP-UMUM src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-YOUTUBE address-list-timeout=1d chain=prerouting content=googlevideo.com dst-address-list=!IP-UMUM src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-UMUM address-list-timeout=1d chain=prerouting content=ytimg dst-address-list=!LOKAL src-address-list=LOKAL
+/ip firewall raw add action=add-dst-to-address-list address-list=IP-SPEEDTEST address-list-timeout=1d chain=prerouting comment=SPEEDTEST content=speedtest dst-address-list=!LOKAL src-address-list=LOKAL
+/
+ 
+# SIMPLE QUEUE
+/queue type add kind=pcq name=pcq-download-chat pcq-burst-rate=10M pcq-burst-threshold=1500k pcq-burst-time=40s pcq-classifier=dst-address pcq-dst-address6-mask=64 pcq-limit=1024KiB pcq-rate=3M pcq-src-address6-mask=64 pcq-total-limit=512000KiB
+/queue type add kind=pcq name=pcq-upload-chat pcq-burst-rate=10M pcq-burst-threshold=1500k pcq-burst-time=40s pcq-classifier=src-address pcq-dst-address6-mask=64 pcq-limit=1024KiB pcq-rate=3M pcq-src-address6-mask=64 pcq-total-limit=512000KiB
+/queue type add kind=pcq name=pcq-download-meeting pcq-burst-rate=5M pcq-burst-threshold=2250k pcq-burst-time=14s pcq-classifier=dst-address pcq-dst-address6-mask=64 pcq-limit=1024KiB pcq-rate=3M pcq-src-address6-mask=64 pcq-total-limit=512000KiB
+/queue type add kind=pcq name=pcq-upload-meeting pcq-burst-rate=5M pcq-burst-threshold=2250k pcq-burst-time=14s pcq-classifier=src-address pcq-dst-address6-mask=64 pcq-limit=1024KiB pcq-rate=3M pcq-src-address6-mask=64 pcq-total-limit=512000KiB
+/queue type add kind=pcq name=pcq-download-game pcq-classifier=dst-address pcq-limit=1024KiB pcq-total-limit=512000KiB
+/queue type add kind=pcq name=pcq-upload-game pcq-classifier=src-address pcq-limit=1024KiB pcq-total-limit=512000KiB
+/queue type add kind=pcq name=pcq-download-unlimited pcq-classifier=dst-address pcq-limit=1024KiB pcq-total-limit=51200KiB
+/queue type add kind=pcq name=pcq-upload-unlimited pcq-classifier=src-address pcq-limit=1024KiB pcq-total-limit=51200KiB
+/queue simple add comment="[ Copyright \A9 1 ISP Script Proudly Presents for Pejuang GSM ]" name="-> GLOBAL CONNECTION" queue=default/default target=192.168.2.0/24,192.168.3.0/24,192.168.4.0/24
+/queue simple add name="1. GAME" packet-marks="GAME DOWNLOAD,GAME UPLOAD,DNS DOWNLOAD,DNS UPLOAD,ICMP DOWNLOAD,ICMP UPLOAD,APPS DOWNLOAD,APPS UPLOAD" parent="-> GLOBAL CONNECTION" priority=1/1 queue=pcq-upload-game/pcq-download-game target=192.168.2.0/24,192.168.3.0/24,192.168.4.0/24
+/queue simple add name="2. CHAT / VoIP" packet-marks="CHAT DOWNLOAD,CHAT UPLOAD" parent="-> GLOBAL CONNECTION" priority=2/2 queue=pcq-upload-chat/pcq-download-chat target=192.168.2.0/24,192.168.3.0/24,192.168.4.0/24
+/queue simple add name="3. ZOOM MEETING" packet-marks="MEETING DOWNLOAD,MEETING UPLOAD" parent="-> GLOBAL CONNECTION" priority=2/2 queue=pcq-upload-meeting/pcq-download-meeting target=192.168.2.0/24,192.168.3.0/24,192.168.4.0/24
+/queue simple add name="4. ALL CONNECTION" parent="-> GLOBAL CONNECTION" queue=default/default target=192.168.2.0/24,192.168.3.0/24,192.168.4.0/24
+/queue simple add name="CLIENT DHCP" parent="4. ALL CONNECTION" queue=default/default target=192.168.2.0/24
+/queue simple add name="CLIENT HOTSPOT" parent="4. ALL CONNECTION" queue=default/default target=192.168.3.0/24
+/queue simple add name="CLIENT RUMAHAN & PPPOE" parent="4. ALL CONNECTION" queue=default/default target=192.168.4.0/24
+/queue simple add name="PC ADMIN" parent="CLIENT DHCP" queue=default/default target=192.168.2.254/32
+/ip hotspot user profile { set [find] parent="CLIENT HOTSPOT" transparent-proxy=no insert-queue-before=bottom address-pool=none }
+/ppp profile { set [find] parent="CLIENT RUMAHAN & PPPOE" insert-queue-before=bottom }
+/
+ 
+# QUEUE TREE
+/queue tree add comment="[ Copyright \A9 1 ISP Script Proudly Presents for Pejuang GSM ]" name="-> GLOBAL CONNECTION" parent=global
+/queue tree add limit-at=5M max-limit=10M name="1. GAME" packet-mark="GAME DOWNLOAD,GAME UPLOAD" parent="-> GLOBAL CONNECTION" priority=1
+/queue tree add limit-at=1M max-limit=5M name="2. DNS [53]" packet-mark="DNS DOWNLOAD,DNS UPLOAD" parent="-> GLOBAL CONNECTION" priority=2
+/queue tree add limit-at=1M max-limit=5M name="3. PING [icmp]" packet-mark="ICMP DOWNLOAD,ICMP UPLOAD" parent="-> GLOBAL CONNECTION" priority=1
+/queue tree add limit-at=1M max-limit=5M name="4. APPS" packet-mark="APPS DOWNLOAD,APPS UPLOAD" parent="-> GLOBAL CONNECTION" priority=2
+/queue tree add max-limit=100M name="INBOUND PACKET (DOWNLOAD)" parent="-> GLOBAL CONNECTION"
+/queue tree add max-limit=50M name="OUTBOND PACKET (UPLOAD)" parent="-> GLOBAL CONNECTION"
+/queue tree add name="1. Chat / VoIP Download" packet-mark="CHAT DOWNLOAD" parent="INBOUND PACKET (DOWNLOAD)" priority=2 queue=pcq-download-chat
+/queue tree add name="1. Chat / VoIP Upload" packet-mark="CHAT UPLOAD" parent="OUTBOND PACKET (UPLOAD)" priority=2 queue=pcq-upload-chat
+/queue tree add name="2. Meeting Download" packet-mark="MEETING DOWNLOAD" parent="INBOUND PACKET (DOWNLOAD)" priority=2 queue=pcq-download-meeting
+/queue tree add name="2. Meeting Upload" packet-mark="MEETING UPLOAD" parent="OUTBOND PACKET (UPLOAD)" priority=2 queue=pcq-upload-meeting
+/queue tree add name="3. Sosmed Download" packet-mark="SOSMED DOWNLOAD" parent="INBOUND PACKET (DOWNLOAD)" priority=3 queue=pcq-download-unlimited
+/queue tree add name="3. Sosmed Upload" packet-mark="SOSMED UPLOAD" parent="OUTBOND PACKET (UPLOAD)" priority=3 queue=pcq-upload-unlimited
+/queue tree add name="4. TikTok Download" packet-mark="TIKTOK DOWNLOAD" parent="INBOUND PACKET (DOWNLOAD)" priority=4 queue=pcq-download-unlimited
+/queue tree add name="4. TikTok Upload" packet-mark="TIKTOK UPLOAD" parent="OUTBOND PACKET (UPLOAD)" priority=4 queue=pcq-upload-unlimited
+/queue tree add name="5. Youtube Download" packet-mark="YOUTUBE DOWNLOAD" parent="INBOUND PACKET (DOWNLOAD)" priority=5 queue=pcq-download-unlimited
+/queue tree add name="5. Youtube Upload" packet-mark="YOUTUBE UPLOAD" parent="OUTBOND PACKET (UPLOAD)" priority=5 queue=pcq-upload-unlimited
+/queue tree add name="6. Umum Download" packet-mark="UMUM DOWNLOAD" parent="INBOUND PACKET (DOWNLOAD)" priority=6 queue=pcq-download-unlimited
+/queue tree add name="6. Umum Upload" packet-mark="UMUM UPLOAD" parent="OUTBOND PACKET (UPLOAD)" priority=6 queue=pcq-upload-unlimited
+/interface bridge-HOTSPOT set protocol-mode=none 0
+/ip hotspot host remove [find]
+/
+
+# ADDRESS LIST
+/ip firewall address-list add address=192.168.0.0/16 list=LOKAL
+/ip firewall address-list add address=172.16.0.0/12 list=LOKAL
+/ip firewall address-list add address=10.0.0.0/8 list=LOKAL
+/ip firewall address-list add address=192.168.2.254 comment="IP Yang diperbolehkan untuk mengakses Modem / Access Point" list=IP-ADMIN
+/ip firewall address-list add address=23.43.248.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=23.195.48.0/22 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=23.195.52.0/22 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=23.195.56.0/22 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=23.209.192.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=23.219.186.0/23 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=23.219.188.0/22 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=39.192.0.0/10 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=43.255.196.0/22 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=103.239.188.0/22 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.0.0/13 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.0.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.64.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.128.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.128.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.144.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.224.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.120.240.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.0.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.64.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.128.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.160.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.224.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.224.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.225.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.121.240.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.0.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.32.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.36.0/23 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.64.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.96.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.97.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.128.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.160.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.192.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.122.224.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.123.0.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.124.0.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.124.32.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.124.128.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.124.160.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.124.192.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.124.224.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.0.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.32.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.64.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.80.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.96.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.112.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.128.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.144.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.160.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.176.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.192.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.224.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.224.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.125.240.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.127.220.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.127.222.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.127.240.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.127.245.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=114.127.255.0/24 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.0.0.0/12 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.0.128.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.0.160.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.0.192.0/18 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.0.224.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.0.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.32.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.64.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.96.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.128.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.160.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.176.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.192.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.208.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.224.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.1.224.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.0.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.32.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.48.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.64.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.80.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.96.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.128.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.160.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.2.192.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.3.0.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.3.32.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.3.64.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.3.96.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.3.128.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.3.160.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.3.192.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=182.4.0.0/19 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=202.3.208.0/20 comment="GGC-TSEL" list=IP-SOSMED
+/ip firewall address-list add address=1.38.0.0/17 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=14.10.0.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=27.80.0.0/12 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.24.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.64.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.66.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.67.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.68.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.69.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.70.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.71.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.72.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.72.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.73.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.74.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.75.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.76.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.76.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.77.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.78.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.80.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.81.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.82.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.83.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.84.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.85.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.86.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.87.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.88.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.89.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.92.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.93.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.94.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.95.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=31.13.96.0/19 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=36.91.232.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=41.189.185.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=41.224.0.0/13 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=41.226.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=41.226.48.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=45.64.40.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.44.48.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.44.62.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.44.64.0/18 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.44.88.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.44.91.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.44.128.0/17 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.44.172.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.231.96.0/19 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=49.231.104.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=59.103.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=60.240.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=66.220.144.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=66.220.144.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=66.220.152.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=69.63.176.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=69.63.176.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=69.63.184.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=69.171.224.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=69.171.240.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=74.119.76.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=83.80.192.0/18 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=90.180.0.0/14 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.96.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.96.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.99.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.100.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.101.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.112.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.113.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.115.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.116.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.117.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.118.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.119.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.120.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.124.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.125.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.126.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.132.127.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.221.188.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.221.189.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=102.221.191.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=103.4.96.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=103.10.64.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=103.233.140.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=104.16.0.0/12 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=104.19.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=104.21.64.0/19 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=104.21.80.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=106.51.32.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=108.138.136.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=109.106.240.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=112.79.36.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=113.171.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=113.171.64.0/19 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=113.171.72.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=116.119.64.0/18 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=119.46.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=119.46.16.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=119.46.18.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=123.136.96.0/19 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=123.136.120.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.0.0/17 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.25.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.26.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.27.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.28.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.29.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.30.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.30.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.31.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.64.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.65.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.66.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.67.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.68.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.69.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.70.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.71.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.72.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.73.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.74.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.75.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.76.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.79.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.112.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.113.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.114.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.115.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.127.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.128.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.129.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.130.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.131.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.132.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.133.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.134.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.135.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.136.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.137.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.138.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.139.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.140.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.143.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.144.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.147.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.148.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.149.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.150.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.154.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.155.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.156.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.157.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.158.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.159.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.163.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.164.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.171.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=129.134.192.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=137.59.32.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=138.68.0.0/19 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=140.213.207.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=142.250.0.0/15 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=142.251.10.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=146.88.59.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=149.56.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.2.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.3.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.6.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.8.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.9.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.10.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.12.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.13.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.14.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.15.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.17.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.18.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.19.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.20.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.21.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.24.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.24.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.25.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.26.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.27.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.28.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.29.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.30.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.96.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.97.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.128.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.130.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.131.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.136.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.138.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.139.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.140.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.141.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.142.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.143.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.144.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.145.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.146.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.147.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.148.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.151.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.152.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.155.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.158.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.159.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.160.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.162.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.164.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.165.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.166.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.167.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.168.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.169.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.172.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.174.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.175.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.176.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.177.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.178.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.179.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.180.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.181.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.182.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.183.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.184.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.185.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.186.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.187.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.188.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.189.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.190.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.191.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.193.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.194.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.195.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.196.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.197.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.199.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.200.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.200.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.201.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.204.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.205.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.206.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.207.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.208.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.209.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.210.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.211.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.212.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.213.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.214.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.215.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.216.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.219.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.220.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.220.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.221.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.222.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.223.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.224.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.225.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.226.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.231.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.232.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.233.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.234.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.235.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.238.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=157.240.240.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=182.2.0.0/17 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=182.79.128.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=182.79.156.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=183.80.0.0/16 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=183.80.211.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=185.60.216.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=185.60.217.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=185.60.218.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=185.60.219.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=188.93.172.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=189.216.0.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=192.241.224.0/19 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=199.201.64.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=199.201.66.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=199.201.67.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.59.209.0/24 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.70.48.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.73.224.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.158.0.0/17 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.158.64.0/18 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.158.80.0/20 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.158.88.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=202.158.92.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=203.52.0.0/15 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=203.133.0.0/17 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=204.15.20.0/22 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=207.204.96.0/21 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=213.243.0.0/18 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=213.243.6.0/23 comment="Meta" list=IP-SOSMED
+/ip firewall address-list add address=1.56.0.0/13 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=18.176.0.0/13 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=27.111.12.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=31.13.64.0/18 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=31.13.65.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=31.13.66.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=31.13.68.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=31.13.80.0/21 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=31.13.88.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=31.13.92.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=34.192.0.0/12 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=36.86.0.0/16 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=36.91.0.0/16 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=36.91.231.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=38.0.0.0/8 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=38.132.96.0/19 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=54.150.0.0/15 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=54.248.0.0/13 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=60.208.0.0/13 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=66.51.128.0/20 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=69.167.64.0/18 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=69.171.224.0/19 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=69.171.250.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=77.72.168.0/21 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=109.224.192.0/18 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=112.215.156.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=112.224.0.0/11 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.4.0.0/16 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.4.161.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.4.168.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.5.0.0/16 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.5.8.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.5.11.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.120.0.0/13 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.122.192.0/19 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=114.125.0.0/16 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=115.48.0.0/12 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=118.98.0.0/17 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=118.98.16.0/21 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=118.98.20.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=124.228.0.0/14 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=140.213.208.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.0.0/17 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.2.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.7.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.11.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.12.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.18.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.20.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.22.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.192.0/18 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.194.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.203.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.217.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.218.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.229.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.234.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.236.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=157.240.240.0/23 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=167.99.0.0/16 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=179.60.192.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=185.60.216.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=185.200.116.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=192.225.156.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=202.3.208.0/20 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=216.93.240.0/20 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=216.93.246.0/24 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=216.145.108.0/22 comment="WhatsApp" list=IP-CHAT
+/ip firewall address-list add address=13.33.32.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=13.224.250.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=18.140.0.0/15 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.0.162.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.2.16.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.5.165.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.13.219.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.15.138.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.32.0.0/11 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.32.20.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.32.29.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.32.236.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.33.32.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.33.94.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.36.241.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.37.124.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.37.228.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.38.109.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.40.40.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.40.240.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.43.48.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.43.248.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.44.4.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.45.168.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.46.16.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.47.149.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.47.184.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.48.107.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.48.214.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.49.60.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.50.117.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.50.129.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.50.232.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.52.40.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.52.70.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.52.171.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.53.33.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.55.46.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.55.222.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.56.239.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.59.80.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.59.154.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.59.168.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.59.252.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.61.0.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.61.205.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.62.53.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.63.251.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.64.3.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.64.122.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.66.114.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.67.57.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.67.72.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.75.23.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.77.204.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.90.144.0/20 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.192.0.0/11 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.192.44.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.193.170.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.194.184.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.195.88.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.198.10.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.200.72.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.200.142.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.200.144.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.200.218.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.202.33.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.205.70.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.206.192.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.206.212.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.206.248.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.210.250.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.211.14.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.211.140.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.213.0.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.216.152.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.216.158.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.217.100.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.218.80.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.218.92.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.219.172.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.219.184.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.220.203.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.220.254.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.221.50.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.223.18.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=23.223.192.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=34.64.0.0/11 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=34.80.0.0/12 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=34.96.0.0/12 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=34.100.0.0/14 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=34.116.0.0/14 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=35.184.0.0/13 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=35.186.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=35.200.0.0/14 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=36.67.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=36.89.220.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=36.91.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=46.8.96.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=47.246.0.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=47.246.46.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=52.74.0.0/15 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=54.192.144.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=54.230.144.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=61.213.160.0/19 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=69.192.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=69.192.216.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=69.192.218.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=72.246.150.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=72.247.80.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=72.247.127.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=79.140.80.0/20 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=81.199.96.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=81.199.98.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=84.53.177.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=88.221.110.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=89.187.160.0/19 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=92.123.48.185 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=92.123.106.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=92.123.180.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=92.123.224.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=93.186.134.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=95.100.200.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=95.101.20.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=95.101.180.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=96.7.35.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=96.7.251.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=96.17.70.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=96.17.72.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=96.17.178.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=96.17.180.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=101.33.4.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=101.33.6.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=103.136.220.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=103.147.212.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=103.150.178.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=103.160.154.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=103.168.24.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=103.234.120.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=103.245.120.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.64.0.0/10 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.70.126.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.70.235.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.72.79.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.75.169.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.81.138.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.84.150.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.88.70.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.90.6.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.98.116.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.100.95.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.100.168.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.115.36.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.116.243.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=104.124.0.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=108.138.136.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=112.215.161.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.4.39.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.4.168.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.5.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.5.4.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.5.8.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.10.2.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.120.0.0/13 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.124.128.0/18 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.124.192.0/18 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.124.224.0/19 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=114.125.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=117.103.116.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=118.82.28.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=118.97.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=118.97.128.0/19 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=118.97.144.0/20 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=118.98.0.0/17 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=118.98.30.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=118.214.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=121.4.0.0/15 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=121.4.128.0/17 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=122.10.248.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=125.56.128.0/17 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=125.56.199.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=125.56.200.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=125.56.218.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=128.1.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=128.1.52.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=128.1.67.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=128.14.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=129.227.32.0/19 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=130.44.212.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=138.199.36.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=139.177.238.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=140.213.62.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=140.213.224.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=143.244.32.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=147.160.176.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=147.160.190.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=151.101.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=151.101.108.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=152.192.0.0/13 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=154.92.0.0/14 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=154.94.22.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=154.223.5.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=156.59.116.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=156.146.32.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=156.233.24.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=156.238.0.0/15 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=160.20.222.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=162.220.220.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=163.181.24.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=167.82.0.0/17 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=172.224.0.0/12 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=180.250.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=180.250.169.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=181.65.0.0/19 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=184.24.0.0/13 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=184.28.72.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=184.50.0.0/15 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=184.50.85.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=184.84.0.0/14 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=199.103.24.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=199.232.0.0/16 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=202.70.50.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=202.179.138.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=202.180.16.0/21 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=202.180.17.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=203.205.136.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=210.210.144.0/23 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=211.152.128.0/22 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=212.102.56.0/24 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=223.64.0.0/10 comment="TikTok" list=IP-TIKTOK
+/ip firewall address-list add address=3.7.35.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.21.137.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.22.11.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.23.93.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.25.41.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.25.42.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.25.49.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.80.20.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.96.19.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.101.32.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.101.52.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.104.34.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.120.121.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.127.194.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.208.72.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.211.241.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.235.69.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.235.82.0/23 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.235.71.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.235.72.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.235.73.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=3.235.96.0/23 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=4.34.125.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=4.35.64.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=8.5.128.0/23 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=13.52.6.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=13.52.146.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=18.157.88.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=18.205.93.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=20.203.158.80/28 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=20.203.190.192/26 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=50.239.202.0/23 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=50.239.204.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=52.61.100.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=52.202.62.192/26 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=52.215.168.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=64.125.62.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=64.211.144.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=64.224.32.0/19 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=65.39.152.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=69.174.57.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=69.174.108.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=99.79.20.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=101.36.167.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=103.122.166.0/23 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=111.33.115.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=111.33.181.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=115.110.154.192/26 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=115.114.56.192/26 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=115.114.115.0/26 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=115.114.131.0/26 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=120.29.148.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=129.151.0.0/19 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=129.151.40.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=129.151.48.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=129.159.0.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=129.159.160.0/19 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=129.159.208.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=130.61.164.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=134.224.0.0/16 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=140.238.128.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=140.238.232.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=144.195.0.0/16 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=147.124.96.0/19 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=149.137.0.0/17 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=150.230.224.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=152.67.20.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=152.67.118.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=152.67.168.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=152.67.180.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=152.67.184.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=152.67.240.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=152.70.224.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=156.45.0.0/17 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=158.101.64.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=158.101.184.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=160.1.56.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=161.199.136.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=162.12.232.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=162.255.36.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=165.254.88.0/23 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=166.108.64.0/18 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.16.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.48.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.56.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.72.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.74.0/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.80.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.96.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.116.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=168.138.244.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=170.114.0.0/16 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=173.231.80.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=192.204.12.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.122.16.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.122.32.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.122.208.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.122.224.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.122.240.0/20 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.123.0.0/19 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.123.40.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.123.128.0/19 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.123.168.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=193.123.192.0/19 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=198.251.128.0/17 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=202.177.207.128/27 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=204.80.104.0/21 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=204.141.28.0/22 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=206.247.0.0/16 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=207.226.132.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=209.9.211.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=209.9.215.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=213.19.144.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=213.19.153.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=213.244.140.0/24 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=221.122.88.64/27 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=221.122.88.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=221.122.89.128/25 comment="Zoom" list=IP-MEETING
+/ip firewall address-list add address=221.123.139.192/27 comment="Zoom" list=IP-MEETING
+/
+#FINISH
+
+
+
+
+</div>
+<!-- Bagian Footer-->
+
+<iframe align="center" frameborder="no" height="280px" name="frame1" scrolling="auto" src="https://rabatamedia.github.io/home/footer.html" style="border: 0px solid;" width="100%">
 </body>
 </html>

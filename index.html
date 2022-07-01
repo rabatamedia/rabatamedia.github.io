@@ -54,5 +54,36 @@ Raih Kesuksesan dengan Memanfaatkan dan Memaksimalkan Peluang. Dapatkan mitra us
   © Copyright 2018 - <script>document.write(new Date().getFullYear())</script>
   <a href="http://rabatamedia.github.io" target="_blank">rabatamedia.github.io</a> is proudly powered by <a href="https://pages.github.com" target="_blank">GitHub Pages</a> - Creator by <a href="http://rabatamedia.github.io" target="_blank">RabataMedia</a>
 </div>
+  
+  <!-- Bagian Hari dan Tanggal -->
+<script>
+var tw = new Date();
+if (tw.getTimezoneOffset() == 0) (a=tw.getTime() + ( 7 *60*60*1000))
+else (a=tw.getTime());
+    tw.setTime(a);
+    var tahun= tw.getFullYear ();
+    var hari= tw.getDay ();
+    var bulan= tw.getMonth ();
+    var tanggal= tw.getDate ();
+    var hariarray=new Array("Minggu,","Senin,","Selasa,","Rabu,","Kamis,","Jum'at,","Sabtu,");
+    var bulanarray=new Array("Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","Nopember","Desember");
+    document.getElementById("HariTanggal").innerHTML = hariarray[hari]+" "+tanggal+" "+bulanarray[bulan]+" "+tahun;
+</script>
+<!-- Bagian Script Jam -->
+<script >
+window.onload= function setDeg(){
+    var time= new Date
+    document.getElementById('Jam').innerHTML=zero(time.getHours())+":"+zero(time.getMinutes())+":"+zero(time.getSeconds())
+    setInterval(setDeg,1000)
+}
+function zero(x){
+    if (x<10){
+        x="0"+x
+    }
+    return x
+}
+</script>
+<!-- Bagian Script Jam berakhir-->
+  
 </body>
 </html>

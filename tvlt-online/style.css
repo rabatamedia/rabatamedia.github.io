@@ -1,0 +1,240 @@
+*, html, body{
+    margin: 0;
+    padding: 0;
+    font-family: "roboto",sans-serif;
+}
+
+.main {
+    background: white;
+    color: #f2f2f2;
+    max-width: 100%;
+    min-height:600px;
+    height: 600px;
+    margin-top: 0;
+    margin-left:auto;
+    margin-right:auto;
+    transition: 0.3s;
+    text-align:center;
+    animation: fadein 1s;
+    -moz-animation: fadein 1s; /* Firefox */
+    -webkit-animation: fadein 1s; /* Safari and Chrome */
+    -o-animation: fadein 1s; /* Opera */
+}
+
+.kotaknavigasi {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 25px;
+    padding: 10px;
+    width: 100%;
+    height: 60px;
+    background-color: black;
+    box-shadow: 0 7px 15px 0 rgba(0,0,0,0.5);
+}
+
+.brand {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-direction: row; 
+    font-size: 1.5em;
+    padding: 15px;
+    text-transform: capitalize;
+    
+}
+.logo>img {   
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.namabranddepan {
+    color: rgb(255, 3, 53);
+    font-weight: 700;
+    padding-left: 7px;  
+}
+
+.namabrandbelakang {
+    color: rgb(2, 255, 2);
+    font-weight: 700;
+    padding-left: 7px;  
+}
+
+/* Bagian Navigasi */
+.navigasi {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.navigasi > li {
+    list-style-type: none;
+    margin: 5px;
+    padding: 5px;
+    
+    /* padding: 10px; */
+}
+
+.navigasi>li>a {
+    color: white;
+    font-size: 20px;
+    text-decoration: none;
+}
+
+.navigasi>li>a:hover {
+    color: red;
+    transition: all 0.3s ease-in-out;
+}
+
+.navigasi>li>img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50px;
+    margin: 5px;
+}
+ 
+.navigasi>li>img:hover {
+    width: 70px;
+    height: 70px;
+    border-radius: 70px;
+    transition: all 0.3s ease-in-out;
+}
+
+.navaktif {
+    background-color: red;
+    color: white;
+    padding: 15px;
+}
+
+.navaktif:hover {
+    color: white !important;
+}
+
+
+/* Bagian Kotak Tengah */
+.kotaktengah {
+    display: flex;
+    background-color: white;
+    min-height: 550px;
+    max-height: 550px;
+}
+
+.kotakantrian {
+    justify-content: center;
+    text-align: center;
+    width: 25%; 
+    min-height: 550px;
+    max-height: 550px;
+    font-size: 95%;
+    color: #a70c0c; 
+    background-color: lightgreen;
+}
+
+.kotakantrian>h1{
+    padding-top: 2%;
+    text-align: center;
+}
+.kotakantrian>p {
+    text-align: left;
+    font-size: 24px;
+    font-weight: 700;
+    color: black;
+    padding: 5px;
+}
+
+/* bagian slider */
+.rabatamedia-sliber {
+    width: 35%;
+    height: 550px;    
+}
+.slider {
+    display: flex;
+}
+.slider>img{
+    animation: 2ms;
+}
+/* bagian video */
+.kotakvideo {
+    width: 100%;      
+    min-height: 550px;
+    max-height: 550px;
+    margin-left:0px;
+    margin-right:0px;
+    padding-bottom: 60px;
+}
+
+
+
+/* Bagian Bawah */
+.kotakbawah {
+    display: flex;
+    width: 100%;
+    display: flex;
+    min-height: 80px;
+    max-height: 80px;
+    padding-top: 20px;
+}
+
+/* Bagian Jam */
+.jam-digital {
+    height: 80px;
+    width: 25%;
+    padding-top: 10px;
+}
+.jam {
+    width: 35%;
+}
+ #jam span {
+    float: center;
+    text-align: center;
+    font-size: 40px;
+    margin: 0 1%;
+    padding: 9px;
+    width: 30%;
+    border-radius: 5px;
+    box-sizing: border-box;
+ }
+ #jam span:nth-child(1) {
+    background: #a70c0c;
+ }
+ #jam span:nth-child(2) {
+    background: #f6ab29;
+ }
+ #jam span:nth-child(3) {
+    background: #298f19;
+ }
+ #jam::after {
+    content: "";
+    display: block;
+    clear: both;
+ }
+ #unit span {
+    float: left;
+    width: 30%;
+    margin-top: 30px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 18px;
+    text-shadow: 1px 1px 1px rgba(10, 10, 10, 0.7)
+ }
+ span.turn {
+    animation: turn 0.7s ease;
+ }
+ @keyframes turn {
+    0% {transform: rotateX(0deg)}
+    100% {transform: rotateX(360deg)}
+ }
+
+ /* Bagian Iklan */
+ .tulisanberjalan {
+    width: 100%;
+    font-size: 40px;
+    font-weight: 400;
+    color: red;
+}
+.tulisanberjalan>marquee>img {
+    width: 50px;
+    height: 50px;
+}

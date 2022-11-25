@@ -1,4 +1,4 @@
-![image](https://user-images.githubusercontent.com/42666125/147416579-20a6475d-3b90-4ead-a442-9deaefc19509.png)
+![image](https://avatars.githubusercontent.com/u/54209817?v=4)
 - ⚡ Github Page : https://rabatamedia.github.io
 
 ## :link: <b>You can find me at:</b>

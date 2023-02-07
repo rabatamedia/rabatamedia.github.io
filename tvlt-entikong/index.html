@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.css"/>
+    <title>KSP CU Lantang Tipo TV</title>
+</head>
+<body >
+<div class="main">
+    <nav class="kotaknavigasi">
+        <div class="brand">
+            <div class="logo"><img src="gambar/logo.png" alt=""></div>
+            <div class="namabranddepan">KSP</div>
+            <div class="namabrandbelakang">CU Lantang Tipo</div>
+        </div>
+        <ul class="navigasi">
+            <li><a href="" class="navaktif">Live</a></li>
+            <li><img src="gambar/rabata.png" alt="...."></li>
+        </ul>
+    </nav>
+
+    <div class="kotaktengah">
+        <div class="kotakantrian">
+                <div class="swiper">
+                    <div class="swiper-wrapper">
+                        <div class="swiper-slide"><img src="gambar/psm-2.png" alt="1"></div>
+                        <div class="swiper-slide"><img src="gambar/nego.png" alt="2"></div>
+                        <div class="swiper-slide"><img src="gambar/simpanandantabungan.png" alt="2"></div>
+                        <div class="swiper-slide"><img src="gambar/pinjaman.png" alt="2"></div>
+                        <div class="swiper-slide"><img src="gambar/buku-anggota.jpeg" alt="2"></div>
+                    </div>
+                </div>
+            
+        </div>
+        
+        <div class="kotakvideo">
+            <video controls autoplay loop style="height:100% ; width:100%" id="autoplay">
+                <source src="video/m-tpo.mp4" type="video/mp4">
+            </video>
+        </div>
+    </div>
+
+    <div class="kotakbawah">
+        <div id="jam" class="jam-digital"></div>        
+        <div class="tulisanberjalan">
+            <marquee behavior="" direction="">
+                <img src="gambar/logo.png" alt="">
+                Selamat Datang di <b style="color: green;">KSP CU Lantang Tipo KC Entikong</b>
+                <img src="gambar/logo.png" alt="">
+                Silahkan isi Form Keanggotaan untuk masuk menjadi anggota dan membuka produk simpanan CU Lantang Tipo dengan melampirkan KTP dan KK. Biaya Rp850.000,-
+                <img src="gambar/logo.png" alt="">
+                Segera Aktifkan layanan ATM bagi anggota yang telah memiliki simpanan Tabing. Gratis !!!
+                <img src="gambar/logo.png" alt="">
+                Aktifkan Setoran Otomatis untuk menggunakan layanan menabung dan membayar angsuran secara otomatis dari Simpanan Tabing. Gratis !!!
+                <img src="gambar/logo.png" alt="">
+                Ajukan Pinjaman Setara Simpanan BA dan Muhunt, dapatkan kesempatan mendapatkan Bunga Pinjaman Sampai 0.5% Anuitas. Informasi selengkapnya silahkan Konsultasi di Bidang Kredit.
+                <img src="gambar/logo.png" alt="">
+                Simpanan Wajib Rp30.000,- berlaku mulai tanggal 1 Januari 2023. Silahkan Setorkan Simpanan Wajib setiap Bulan.
+                <img src="gambar/logo.png" alt="">
+                Tabungan Muhunt Minimal Rp5.000,- berlaku mulai tanggal 1 Januari 2023. Silahkan Setorkan Tabungan Muhunt setiap Bulan.
+                <img src="gambar/logo.png" alt="">
+                Biaya Kontribusi SOLKESTA sebesar Rp50.000,-, Kontribusi SOLDUKA sebesar Rp60.000,-, dan Kontribusi Layanan IT sebesar Rp30.000,- telah di tarik dari Tabungan Muhunt Anggota pada 5 Januari 2023. Silahkan Cetak Buku Tabungan Muhunt Anggota.
+                <img src="gambar/logo.png" alt="">
+                Melayani Anggota, Kebanggaan Kami.
+            </marquee>
+        </div>
+    </div>
+</div>
+
+<!-- Bagian Script -->
+<script>
+    function animation(span) {
+    span.className = "turn";
+    setTimeout(function () {
+       span.className = ""
+    }, 700);
+ }
+ 
+ function jam() {
+    setInterval(function () {
+ 
+       var waktu = new Date();
+       var jam   = document.getElementById('jam');
+       var hours = waktu.getHours();
+       var minutes = waktu.getMinutes();
+       var seconds = waktu.getSeconds();
+ 
+       if (waktu.getHours() < 10)
+       {
+          hours = '0' + waktu.getHours();
+       }
+       if (waktu.getMinutes() < 10)
+       {
+          minutes = '0' + waktu.getMinutes();
+       }
+       if (waktu.getSeconds() < 10)
+       {
+          seconds = '0' + waktu.getSeconds();
+       }
+       jam.innerHTML  = '<span>' + hours + '</span>'
+                      + '<span>' + minutes + '</span>'
+                      + '<span>' + seconds +'</span>';
+ 
+       var spans      = jam.getElementsByTagName('span');
+       animation(spans[2]);
+       if (seconds == 0) animation(spans[1]);
+       if (minutes == 0 && seconds == 0) animation(spans[0]);
+ 
+    }, 1000);
+ }
+ 
+ jam();
+ 
+ </script>
+
+ <script>
+ 	window.onload=function(){
+ 		document.getElementById("autoplay").play();
+ 	}
+ </script>
+
+<script src="https://cdn.jsdelivr.net/npm/js-cookie@3.0.1/dist/js.cookie.min.js"></script>
+<script src="script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/swiper@8/swiper-bundle.min.js"></script>
+
+
+<script>
+    const swiper = new Swiper('.swiper', {
+        autoplay:{
+            delay:20000,
+            disableOnInteraction: false,
+        },
+  // Optional parameters
+  direction: 'horizontal',
+  loop: true,
+});
+</script>
+</body>
+</html>

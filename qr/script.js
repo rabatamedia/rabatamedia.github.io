@@ -17,5 +17,3 @@ async function generateQR() {
     btn.removeAttribute("disabled");
     btn.innerHTML = "Generate";
 }
-
-// By Rabata Media

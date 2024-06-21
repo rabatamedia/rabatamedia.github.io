@@ -15,7 +15,6 @@
         img {
         box-shadow: 10px 10px 20px rgba(0, 0, 0, 0.5);
       }
-
   </style>
   
   <title>QR Codes Generator</title>
@@ -27,40 +26,85 @@
     <div class="card-header">
    <h2> QR Codes Generator </h2>
     </div>
-
+<!-- Bagian Tombol Generate QR Codes -->
     <div class="container">
       <div class="card-body text-center">
         <label for="user-input">Input Data : </label>
         <input type="text" class ="form-control" id="user-input" autocomplete="off" autofocus required>
-        <button class="w-40 btn btn-lg btn-primary mt-2" id="btn">Generate</button>
+        <button class="w-40 btn btn-lg btn-primary mt-2" id="btn" >Generate</button>
       </div>
 
-    <div class="container">
-      <div class="row justify-content-center mt-2">
-        <p id="qrcode-container" ></p>  
-      </div>
+<!-- Bagian Tampilkan QR Codes -->
+    <div class="container" >
+    	<div class="imageContainer">
+		      <div class="row justify-content-center mt-2" >
+		        <p id="qrcode-container" ></p>
+		      </div>
+      	</div>
     </div>
-  
+
+<!-- Bagian Tombol Download QR Codes -->
+      <div class="container" >
+      	<div class="row justify-content-center mt-2" >
+      	 	<button id="downloadBtn" style="display:none;">Download QR Code</button>
+      	 </div>
+      </div>
+
     </div>
 
     <div class="card-footer text-muted mt-2">
       Oleh : <a href="https://www.youtube.com/rabatamedia" target="_blank">Rabata Media</a>
     </div>
+
 </div>
 </div>
+
 
 
 
 <!-- Bagian JS Membuat QR Code -->
 <script>
-  document.getElementById('btn').addEventListener('click', createQRCode);
-  function createQRCode() {
-  const QRContainer = document.getElementById("qrcode-container");
-  QRContainer.innerHTML = "";
-  const text = document.getElementById('user-input').value;
-  new QRCode(QRContainer, text);
-  }
+
+	document.getElementById('btn').addEventListener('click', createQRCode);
+	function createQRCode() {
+	  const QRContainer = document.getElementById("qrcode-container");
+	  QRContainer.innerHTML = "";
+
+	  const downloadBtn = document.getElementById('downloadBtn');
+        downloadBtn.style.display = 'block';
+
+	  const text = document.getElementById('user-input').value;
+	  new QRCode(QRContainer, text);
+	  }
+
 </script>
-  
+
+<!-- Bagian Download QR Codes -->
+<script>
+	document.getElementById('downloadBtn').addEventListener('click', function() {
+    // Dapatkan elemen gambar dalam div menggunakan selektor CSS
+    const image = document.querySelector('.imageContainer img');
+    
+    // Pastikan elemen gambar ada
+	    if (image) {
+	        // Dapatkan URL gambar
+	        const imageUrl = image.src;
+
+	        // Buat elemen link
+	        const link = document.createElement('a');
+	        link.href = imageUrl;
+
+	        // Set atribut download dengan nama file
+	        link.download = 'qr-by-rabatamedia.github.io.jpg';
+
+	        // Simulasikan klik pada link
+	        link.click();
+	    } else {
+	        console.log("Gambar tidak ditemukan!");
+	    }
+	});
+
+</script>
+
 </body>
 </html>

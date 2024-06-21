@@ -59,22 +59,21 @@
 </div>
 </div>
 
-
-
-
 <!-- Bagian JS Membuat QR Code -->
 <script>
 
 	document.getElementById('btn').addEventListener('click', createQRCode);
 	function createQRCode() {
-	  const QRContainer = document.getElementById("qrcode-container");
-	  QRContainer.innerHTML = "";
+	  const imageContainer = document.getElementById("qrcode-container");
+	  imageContainer.innerHTML = "";
 
+	  // Tampilkan downloadBtn 
 	  const downloadBtn = document.getElementById('downloadBtn');
-        downloadBtn.style.display = 'block';
+      downloadBtn.style.display = 'block';
 
+      // Buat QR
 	  const text = document.getElementById('user-input').value;
-	  new QRCode(QRContainer, text);
+	  new QRCode(imageContainer, text);
 	  }
 
 </script>
@@ -95,7 +94,7 @@
 	        link.href = imageUrl;
 
 	        // Set atribut download dengan nama file
-	        link.download = 'qr-by-rabatamedia-github-io.jpg';
+	        link.download = 'qrbyrabatamedia.jpg';
 
 	        // Simulasikan klik pada link
 	        link.click();
@@ -103,7 +102,6 @@
 	        console.log("Gambar tidak ditemukan!");
 	    }
 	});
-
 </script>
 
 </body>

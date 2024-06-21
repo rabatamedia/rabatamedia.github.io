@@ -59,6 +59,7 @@
 </div>
 </div>
 
+
 <!-- Bagian JS Membuat QR Code -->
 <script>
 
@@ -67,10 +68,11 @@
 	  const imageContainer = document.getElementById("qrcode-container");
 	  imageContainer.innerHTML = "";
 
-	  // Tampilkan downloadBtn 
+	  // Tampilkan downloadBtn + Bootstrap
 	  const downloadBtn = document.getElementById('downloadBtn');
       downloadBtn.style.display = 'block';
-
+      downloadBtn.className = 'btn btn-success';
+        
       // Buat QR
 	  const text = document.getElementById('user-input').value;
 	  new QRCode(imageContainer, text);
@@ -93,8 +95,13 @@
 	        const link = document.createElement('a');
 	        link.href = imageUrl;
 
-	        // Set atribut download dengan nama file
-	        link.download = 'qrbyrabatamedia.jpg';
+
+	        // Buat nama file dengan menambahkan waktu timestamp
+                const timestamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '_').replace(/\..+/, '');
+                link.download = `qr_by_rabata_${timestamp}.png`;
+
+	        // // Set atribut download dengan nama file
+	        // link.download = 'qrbyrabatamedia.jpg';
 
 	        // Simulasikan klik pada link
 	        link.click();

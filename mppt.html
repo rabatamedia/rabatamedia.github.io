@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kalkulator MPPT Minimal — PLTS</title>
+  <style>
+    :root{--bg:#0f172a;--card:#0b1120;--accent:#06b6d4;--muted:#94a3b8;--glass:rgba(255,255,255,0.03)}
+    *{box-sizing:border-box}
+    body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial; margin:0; padding:24px; background:linear-gradient(180deg,#071029 0%, #081529 100%); color:#e6eef6}
+    .wrap{max-width:920px;margin:0 auto}
+    header{display:flex;gap:16px;align-items:center}
+    header h1{font-size:20px;margin:0}
+    header p{margin:0;color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px;margin-top:18px}
+    .card{background:var(--card);padding:18px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,0.6)}
+    label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+    input[type=number], input[type=text], select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);background:var(--glass);color:inherit;font-size:14px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .btn{display:inline-block;padding:10px 12px;border-radius:10px;background:linear-gradient(90deg,var(--accent),#7dd3fc);color:#042029;border:none;cursor:pointer;font-weight:600}
+    .muted{color:var(--muted);font-size:13px}
+    .result{font-size:20px;font-weight:700;margin-top:12px}
+    .small{font-size:13px;color:var(--muted)}
+    .preset{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .chip{padding:6px 8px;border-radius:999px;background:rgba(255,255,255,0.03);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+    footer{margin-top:18px;color:var(--muted);font-size:13px}
+    @media(max-width:880px){.grid{grid-template-columns:1fr} .card{padding:14px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Kalkulator MPPT Minimal — PLTS</h1>
+        <p>Masukkan data baterai & panel untuk mendapatkan rekomendasi rating MPPT (ampere) dan tegangan input PV.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card">
+        <div>
+          <label>Tegangan Baterai (V)</label>
+          <input id="battV" type="number" value="12" step="0.1" min="6" />
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Kapasitas Baterai (Ah)</label>
+          <input id="battAh" type="number" value="100" min="1" />
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Daya Panel (Wp)</label>
+          <input id="panelWp" type="number" value="200" min="1" />
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Vmp Panel (opsional, V) — gunakan nilai nyata jika ada</label>
+          <input id="panelVmp" type="number" value="18" step="0.1" min="6" />
+          <div class="small" style="margin-top:6px">Jika tidak tahu, biarkan 18 V (umum untuk panel 12V nominal).</div>
+        </div>
+
+        <div style="margin-top:12px">
+          <label>Safety margin (%)</label>
+          <input id="margin" type="number" value="30" min="0" max="200" />
+          <div class="small" style="margin-top:6px">
+            <strong>Rekomendasi umum:</strong>
+            <ul>
+              <li><strong>Minimal (kasar)</strong>: 10% — hanya kalau benar-benar pasti tidak akan ada upgrade dan kondisi ideal.</li>
+              <li><strong>Umum/aman</strong>: 20–30% — cocok untuk kebanyakan instalasi rumah & off-grid kecil.</li>
+              <li><strong>Kondisi keras / rencana upgrade</strong>: 30–50% — iklim panas, kabel panjang, atau mau tambah panel di masa depan.</li>
+              <li><strong>Kalau ragu</strong>: ambil 30% — ini pilihan praktis dan aman.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;display:flex;gap:8px;align-items:center">
+          <button class="btn" id="calcBtn">Hitung</button>
+          <button class="btn" id="copyBtn" style="background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent)">Salin Hasil</button>
+          <div style="flex:1" class="muted">Preset cepat:</div>
+        </div>
+
+        <div class="preset" style="margin-top:8px">
+          <button class="chip" data-wp="100">100 Wp</button>
+          <button class="chip" data-wp="200">200 Wp</button>
+          <button class="chip" data-wp="300">300 Wp</button>
+          <button class="chip" data-wp="400">400 Wp</button>
+          <button class="chip" data-wp="600">600 Wp</button>
+        </div>
+
+        <div id="explain" class="small" style="margin-top:12px">
+          <strong>Penjelasan singkat:</strong>
+          <ul>
+            <li>I_batt ≈ PanelWp / TeganganBaterai — perkiraan arus pengisian ke baterai.</li>
+            <li>Tambahkan safety margin untuk menghindari overload dan memberi ruang upgrade.</li>
+            <li>Pilih MPPT dengan rating arus >= rekomendasi (biasanya 20–30% lebih besar dari arus nominal).</li>
+          </ul>
+        </div>
+      </section>
+
+      <aside class="card">
+        <div>
+          <label>Hasil Perhitungan</label>
+          <div id="resultArea">
+            <div class="result" id="recCurrent">— A</div>
+            <div class="small" id="recText">Belum dihitung</div>
+
+            <div style="margin-top:10px">
+              <label>Estimasi Voc Panel</label>
+              <input id="estVoc" type="text" readonly />
+            </div>
+
+            <div style="margin-top:10px">
+              <label>Rekomendasi MPPT</label>
+              <input id="recMPPT" type="text" readonly />
+            </div>
+
+            <div style="margin-top:12px" class="small">Catatan: Ini adalah perhitungan sederhana untuk membantu memilih MPPT. Untuk desain final, periksa datasheet panel (Voc & Vmp) dan datasheet MPPT (maks PV input voltage & arus).</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <footer>
+      <div>Ingin format output .pdf atau rekomendasi merk & model? Beri tahu — aku bantu susun daftar model MPPT yang tersedia di pasaran.</div>
+    </footer>
+  </div>
+
+  <script>
+    function $(id){return document.getElementById(id)}
+
+    const calcBtn = $('calcBtn');
+    const copyBtn = $('copyBtn');
+    const chips = document.querySelectorAll('.chip');
+
+    chips.forEach(c=>c.addEventListener('click', e=>{ $('panelWp').value = e.currentTarget.dataset.wp; compute(); }));
+
+    calcBtn.addEventListener('click', compute);
+    copyBtn.addEventListener('click', ()=>{
+      const out = generateOutputText();
+      navigator.clipboard?.writeText(out).then(()=>{
+        alert('Hasil disalin ke clipboard');
+      }).catch(()=>alert('Gagal menyalin — mungkin browser tidak mengizinkan clipboard'));
+    });
+
+    function round(n,dec=1){ return Math.round(n*Math.pow(10,dec))/Math.pow(10,dec); }
+
+    function compute(){
+      const Vb = parseFloat($('battV').value) || 12;
+      const Ah = parseFloat($('battAh').value) || 100;
+      const P = parseFloat($('panelWp').value) || 200;
+      const Vmp = parseFloat($('panelVmp').value) || 18;
+      const margin = parseFloat($('margin').value) || 30;
+
+      const I_batt = P / Vb;
+      const I_with_margin = I_batt * (1 + (margin/100));
+
+      const standard = [10,15,20,25,30,40,50,60,80,100];
+      let rec = standard.find(x=>x >= I_with_margin) || Math.ceil(I_with_margin/10)*10;
+
+      const estVoc = round(Vmp * 1.2,2);
+
+      $('recCurrent').textContent = round(I_with_margin,2) + ' A (arus pengisian dengan margin)';
+      $('recText').textContent = `Arus tanpa margin ≈ ${round(I_batt,2)} A. Dengan margin ${margin}% → ${round(I_with_margin,2)} A.`;
+      $('estVoc').value = estVoc + ' V (perkiraan Voc)';
+      $('recMPPT').value = `MPPT ${rec} A / ${Vb >= 24 ? '24/48V system' : '12/24V compatible'} (pilih tipe 12/24V auto untuk fleksibilitas)`;
+
+      if(rec <= 20) $('recMPPT').value += ' — rekomendasi: MPPT 20A';
+      else if(rec <= 30) $('recMPPT').value += ' — rekomendasi: MPPT 30A';
+      else if(rec <= 40) $('recMPPT').value += ' — rekomendasi: MPPT 40A';
+      else $('recMPPT').value += ' — gunakan MPPT >' + rec + 'A';
+
+      return {Vb, Ah, P, Vmp, margin, I_batt, I_with_margin, rec, estVoc};
+    }
+
+    function generateOutputText(){
+      const d = compute();
+      return `Kalkulator MPPT — Hasil\n`+
+             `Tegangan baterai: ${d.Vb} V\n`+
+             `Kapasitas baterai: ${d.Ah} Ah\n`+
+             `Daya panel: ${d.P} Wp\n`+
+             `Vmp panel: ${d.Vmp} V (input)\n`+
+             `Safety margin: ${d.margin}%\n\n`+
+             `Arus tanpa margin ≈ ${round(d.I_batt,2)} A\n`+
+             `Arus dengan margin ≈ ${round(d.I_with_margin,2)} A\n`+
+             `Rekomendasi MPPT: MPPT ${d.rec} A (pilih tipe 12/24V auto)\n`+
+             `Estimasi Voc panel (perkiraan): ${d.estVoc} V\n\n`+
+             `Catatan: Perhitungan ini bersifat estimasi. Periksa datasheet panel (Voc & Vmp) dan spesifikasi MPPT (maks PV input voltage dan arus) sebelum pembelian.`;
+    }
+
+    compute();
+  </script>
+</body>
+</html>

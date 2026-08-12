@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Slip Setoran</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f8f9fa;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #333;
+    }
+    .form-container {
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 10px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+      color: #555;
+    }
+    input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      color: #fff;
+      background: #007bff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h2>Form Input Slip Setoran</h2>
+
+  <div class="form-container">
+    <div class="form-group">
+      <label>Nama Anggota/Pemilik</label>
+      <input id="nama" autofocus required>
+    </div>
+    <div class="form-group">
+      <label>Nomor Anggota/Rekening</label>
+      <input id="norek" required>
+    </div>
+    <div class="form-group">
+      <label>Debet Rekening</label>
+      <input id="debetrekening" required>
+    </div>
+    <div class="form-group">
+      <label>Nomor Rekening Debet</label>
+      <input id="norek2" required>
+    </div>
+    <div class="form-group">
+      <label>Jumlah Setor</label>
+      <input id="jumlahsetor" required>
+    </div>
+    <div class="form-group">
+      <label>Tempat</label>
+      <input id="tempat" value="Entikong">
+    </div>
+    <div class="form-group">
+      <label>Tanggal</label>
+      <input id="tanggal" type="date">
+    </div>
+    <button onclick="buatSlip()">Cetak Slip</button>
+  </div>
+
+  <script>
+  // ===== Fungsi terbilang =====
+  function terbilang(n) {
+    const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", 
+                    "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+    n = parseInt(n, 10);
+    if (n < 12) return satuan[n];
+    else if (n < 20) return terbilang(n - 10) + " Belas";
+    else if (n < 100) return terbilang(Math.floor(n / 10)) + " Puluh " + terbilang(n % 10);
+    else if (n < 200) return "Seratus " + terbilang(n - 100);
+    else if (n < 1000) return terbilang(Math.floor(n / 100)) + " Ratus " + terbilang(n % 100);
+    else if (n < 2000) return "Seribu " + terbilang(n - 1000);
+    else if (n < 1000000) return terbilang(Math.floor(n / 1000)) + " Ribu " + terbilang(n % 1000);
+    else if (n < 1000000000) return terbilang(Math.floor(n / 1000000)) + " Juta " + terbilang(n % 1000000);
+    else return "";
+  }
+
+  // ===== Format angka saat input =====
+  const jumlahInput = document.getElementById("jumlahsetor");
+  jumlahInput.addEventListener("input", function(e) {
+    let angka = this.value.replace(/\D/g, "");
+    if (!angka) {
+      this.value = "";
+      return;
+    }
+    this.value = parseInt(angka, 10).toLocaleString("id-ID");
+  });
+
+  // ===== Simpan & Ambil data dari localStorage =====
+  const fields = ["nama", "norek", "debetrekening", "norek2", "jumlahsetor", "tempat", "tanggal"];
+
+  // isi data saat load
+  window.onload = () => {
+    fields.forEach(f => {
+      let val = localStorage.getItem(f);
+      if (val) {
+        document.getElementById(f).value = val;
+      }
+    });
+
+    // jika tanggal kosong → isi default hari ini (yyyy-mm-dd untuk input date)
+    let tglInput = document.getElementById("tanggal");
+    if (!tglInput.value) {
+      let today = new Date();
+      let yyyy = today.getFullYear();
+      let mm = String(today.getMonth() + 1).padStart(2, "0");
+      let dd = String(today.getDate()).padStart(2, "0");
+      tglInput.value = `${yyyy}-${mm}-${dd}`;
+    }
+  };
+
+  // simpan data setiap ada perubahan
+  fields.forEach(f => {
+    document.getElementById(f).addEventListener("input", function() {
+      localStorage.setItem(f, this.value);
+    });
+  });
+
+  // ===== Cetak Slip =====
+  function buatSlip() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: [165, 110]
+    });
+
+    const data = {};
+    fields.forEach(f => data[f] = document.getElementById(f).value);
+
+    let jumlah = parseInt(data.jumlahsetor.toString().replace(/\D/g, ""), 10) || 0;
+    let teksTerbilang = terbilang(jumlah) + " Rupiah";
+
+    // format tanggal dd-mm-yyyy
+    let tanggalCetak;
+    if (data.tanggal) {
+      let tglObj = new Date(data.tanggal);
+      let dd = String(tglObj.getDate()).padStart(2, "0");
+      let mm = String(tglObj.getMonth() + 1).padStart(2, "0");
+      let yyyy = tglObj.getFullYear();
+      tanggalCetak = `${dd}-${mm}-${yyyy}`;
+    } else {
+      let today = new Date();
+      let dd = String(today.getDate()).padStart(2, "0");
+      let mm = String(today.getMonth() + 1).padStart(2, "0");
+      let yyyy = today.getFullYear();
+      tanggalCetak = `${dd}-${mm}-${yyyy}`;
+    }
+
+    // mapping koordinat
+    doc.setFontSize(9);
+    doc.text(data.nama, 57, 35);
+    doc.text(data.norek, 57, 40);
+    doc.text(data.debetrekening, 57, 48);
+    doc.text(data.norek2, 57, 53);
+    doc.text(jumlah.toLocaleString("id-ID"), 75, 103);
+
+    // === wrap otomatis untuk teks terbilang ===
+    let teksWrap = doc.splitTextToSize(teksTerbilang, 70); // max lebar 70mm
+    doc.text(teksWrap, 30, 108);
+
+
+    // doc.text(teksTerbilang, 30, 108);
+    doc.text(`${data.tempat}, ${tanggalCetak}`, 55, 119);
+    // bagian yang tanda tangan si sumber
+    doc.text(data.debetrekening, 67, 137);
+
+    const pdfBlob = doc.output("blob");
+    const blobUrl = URL.createObjectURL(pdfBlob);
+
+    const printWindow = window.open(blobUrl);
+    printWindow.onload = function() {
+      printWindow.focus();
+      printWindow.print();
+    };
+  }
+</script>
+
+</body>
+</html>
